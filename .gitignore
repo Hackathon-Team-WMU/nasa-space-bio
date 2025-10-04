@@ -7,3 +7,7 @@ data/*
 
 # Let the csv be as is
 !data/SB_publication_PMC.csv
+
+# Ignore the fetched data
+*.txt
+fetched_texts/*
