@@ -1,5 +1,8 @@
 import os
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 client = OpenAI(
     base_url="https://api.studio.nebius.com/v1/",
@@ -11,7 +14,10 @@ response = client.chat.completions.create(
     max_tokens=512,
     temperature=0.3,
     top_p=0.95,
-    messages=[]
+    messages=[
+            {"role": "system", "content": "You are an AI assistant for NASA bioscience research."},
+            {"role": "user", "content": "Summarize the goal of NASA’s bioscience research in space."}
+        ]
 )
 
-print(response.to_json())
+print(response.choices[0].message.content)
