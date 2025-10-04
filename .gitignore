@@ -3,7 +3,7 @@ venv
 .env
 
 # Donot upload the data files i.e., the papers
-data/
+data/*
 
 # Let the csv be as is
-!SB_publication_PMC.csv
+!data/SB_publication_PMC.csv
