@@ -1,0 +1,9 @@
+# No python env stuff
+venv
+.env
+
+# Donot upload the data files i.e., the papers
+data/
+
+# Let the csv be as is
+!SB_publication_PMC.csv
