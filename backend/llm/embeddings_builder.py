@@ -1,11 +1,8 @@
 import os
-from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 import torch
-
-load_dotenv()
 
 DATA_DIR = "data/fetched_texts"
 VECTOR_DIR = "vector_store"
