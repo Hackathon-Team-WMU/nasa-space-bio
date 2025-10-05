@@ -27,12 +27,8 @@ def process_query():
     user_query = data['query']
     role = data['role']
 
-
-    # TODO: call langchain code here like this
-    # response = langchain_function(user_query)
-
-    # mock repsonse for starting
-    langchain_response = query(user_query)
+    # Calling langchain rag query
+    langchain_response = query(user_query, role)
 
     return jsonify({
         'query': user_query,
