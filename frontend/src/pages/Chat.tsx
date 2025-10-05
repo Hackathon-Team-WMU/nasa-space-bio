@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Plus, Rocket, LogOut, User, Sparkles, ChevronDown } from "lucide-react";
+import { MessageSquare, Send, Plus, Rocket, LogOut, User, Sparkles, ChevronDown, Trash2, Pencil, Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,6 +99,8 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>("scientist");
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
   const currentChat = chats.find((chat) => chat.id === currentChatId);
   const storedMessages = currentChat?.messages || [];
@@ -178,10 +180,48 @@ const Chat = () => {
     };
     setChats((prev) => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
+    return newChat.id;
   };
 
   const switchChat = (chatId: string) => {
     setCurrentChatId(chatId);
+  };
+
+  const deleteChat = (chatId: string) => {
+    const updatedChats = chats.filter((chat) => chat.id !== chatId);
+    setChats(updatedChats);
+    
+    // If deleted chat was active, switch to another or create new
+    if (currentChatId === chatId) {
+      if (updatedChats.length > 0) {
+        setCurrentChatId(updatedChats[0].id);
+      } else {
+        // No chats left, create a new one
+        createNewChat();
+      }
+    }
+  };
+
+  const startRenaming = (chatId: string, currentTitle: string) => {
+    setEditingChatId(chatId);
+    setEditingTitle(currentTitle);
+  };
+
+  const saveRename = (chatId: string) => {
+    if (editingTitle.trim()) {
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.id === chatId ? { ...chat, title: editingTitle.trim() } : chat
+        )
+      );
+    }
+    setEditingChatId(null);
+    setEditingTitle("");
+  };
+
+  const cancelRename = () => {
+    setEditingChatId(null);
+    setEditingTitle("");
   };
 
   const updateChatMessages = (chatId: string, newMessages: Message[]) => {
@@ -312,17 +352,76 @@ const Chat = () => {
               chats.map((chat) => (
                 <Card
                   key={chat.id}
-                  className={`p-3 border-sidebar-border hover:bg-sidebar-accent/80 cursor-pointer transition-colors ${
+                  className={`group p-3 border-sidebar-border hover:bg-sidebar-accent/80 transition-colors ${
                     chat.id === currentChatId
                       ? "bg-sidebar-accent border-primary/50"
                       : "bg-sidebar-accent"
                   }`}
-                  onClick={() => switchChat(chat.id)}
                 >
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm truncate">{chat.title}</span>
-                  </div>
+                  {editingChatId === chat.id ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") saveRename(chat.id);
+                          if (e.key === "Escape") cancelRename();
+                        }}
+                        className="h-6 text-sm px-2 flex-1"
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => saveRename(chat.id)}
+                      >
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={cancelRename}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <span
+                        className="text-sm flex-1 cursor-pointer break-words overflow-hidden line-clamp-2 min-h-[2.5rem] leading-5 flex items-center"
+                        onClick={() => switchChat(chat.id)}
+                      >
+                        {chat.title}
+                      </span>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 hover:bg-sidebar-border"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startRenaming(chat.id, chat.title);
+                          }}
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteChat(chat.id);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               ))
             )}
@@ -409,13 +508,13 @@ const Chat = () => {
                 className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <Card
-                  className={`p-4 max-w-[80%] ${
+                  className={`p-4 max-w-[80%] break-words overflow-hidden ${
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-card border-border"
                   }`}
                 >
-                  <div className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-headings:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:list-outside [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:list-outside [&_li]:ml-0">
+                  <div className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-headings:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:list-outside [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:list-outside [&_li]:ml-0 [&_*]:break-words">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {message.content}
                     </ReactMarkdown>
