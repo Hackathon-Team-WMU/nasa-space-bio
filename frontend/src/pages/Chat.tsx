@@ -4,10 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Plus, Rocket, LogOut, User } from "lucide-react";
+import { MessageSquare, Send, Plus, Rocket, LogOut, User, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   id: string;
@@ -15,24 +17,42 @@ interface Message {
   content: string;
 }
 
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: number;
+}
+
 interface Profile {
   full_name: string | null;
   email: string;
 }
 
+const INITIAL_MESSAGE: Message = {
+  id: "1",
+  role: "assistant",
+  content: "Hello! I'm your NASA BioExplorer assistant. Ask me anything about space biology research and experiments!",
+};
+
 const Chat = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "Hello! I'm your NASA BioExplorer assistant. Ask me anything about space biology research and experiments!",
-    },
-  ]);
+  const [chats, setChats] = useState<ChatSession[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const currentChat = chats.find((chat) => chat.id === currentChatId);
+  const messages = currentChat?.messages || [INITIAL_MESSAGE];
+
+  const suggestedPrompts = [
+    "Find publications on microgravity effects on bone density",
+    "Summarize the article about plant growth experiments on the ISS",
+  ];
+
+  const isEmptyChat = messages.length === 1 && messages[0].role === "assistant";
 
   // Redirect if not logged in
   useEffect(() => {
@@ -40,6 +60,40 @@ const Chat = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  // Load chats from localStorage
+  useEffect(() => {
+    try {
+      const savedChats = localStorage.getItem("nasa_chats");
+      if (savedChats) {
+        const chatsData = JSON.parse(savedChats);
+        setChats(chatsData);
+        // Load the most recent chat
+        if (chatsData.length > 0) {
+          setCurrentChatId(chatsData[0].id);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading chats:", error);
+      // Clear corrupted data
+      localStorage.removeItem("nasa_chats");
+    }
+  }, []);
+
+  // Save chats to localStorage whenever they change
+  useEffect(() => {
+    try {
+      if (chats.length > 0) {
+        localStorage.setItem("nasa_chats", JSON.stringify(chats));
+      }
+    } catch (error) {
+      console.error("Error saving chats:", error);
+      // Handle storage quota exceeded
+      if (error instanceof DOMException && error.name === "QuotaExceededError") {
+        alert("Storage limit exceeded. Please clear some old chats.");
+      }
+    }
+  }, [chats]);
 
   // Fetch user profile
   useEffect(() => {
@@ -60,17 +114,69 @@ const Chat = () => {
     fetchProfile();
   }, [user]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const createNewChat = () => {
+    const newChat: ChatSession = {
+      id: Date.now().toString(),
+      title: "New Chat",
+      messages: [INITIAL_MESSAGE],
+      createdAt: Date.now(),
+    };
+    setChats((prev) => [newChat, ...prev]);
+    setCurrentChatId(newChat.id);
+  };
+
+  const switchChat = (chatId: string) => {
+    setCurrentChatId(chatId);
+  };
+
+  const updateChatMessages = (chatId: string, newMessages: Message[]) => {
+    setChats((prev) =>
+      prev.map((chat) => {
+        if (chat.id === chatId) {
+          // Update title based on first user message if it's still "New Chat"
+          let title = chat.title;
+          if (title === "New Chat") {
+            const firstUserMessage = newMessages.find((msg) => msg.role === "user");
+            if (firstUserMessage) {
+              title = firstUserMessage.content.slice(0, 40) + (firstUserMessage.content.length > 40 ? "..." : "");
+            }
+          }
+          return { ...chat, messages: newMessages, title };
+        }
+        return chat;
+      })
+    );
+  };
+
+  const handleSend = async (messageText?: string) => {
+    const textToSend = messageText || input;
+    if (!textToSend.trim() || isLoading) return;
+
+    // Create a new chat if none exists
+    let activeChatId = currentChatId;
+    if (!activeChatId) {
+      const newChat: ChatSession = {
+        id: Date.now().toString(),
+        title: "New Chat",
+        messages: [INITIAL_MESSAGE],
+        createdAt: Date.now(),
+      };
+      setChats([newChat]);
+      setCurrentChatId(newChat.id);
+      activeChatId = newChat.id;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: textToSend,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    const queryText = input;
+    const currentMessages = currentChat?.messages || [INITIAL_MESSAGE];
+    const updatedMessages = [...currentMessages, userMessage];
+    updateChatMessages(activeChatId, updatedMessages);
+    
+    const queryText = textToSend;
     setInput("");
     setIsLoading(true);
 
@@ -95,7 +201,8 @@ const Chat = () => {
         role: "assistant",
         content: data.response,
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const finalMessages = [...updatedMessages, assistantMessage];
+      updateChatMessages(activeChatId!, finalMessages);
     } catch (error) {
       console.error("Error calling API:", error);
       const errorMessage: Message = {
@@ -103,7 +210,8 @@ const Chat = () => {
         role: "assistant",
         content: "Sorry, I encountered an error while processing your request. Please make sure the backend is running on port 2121.",
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      const finalMessages = [...updatedMessages, errorMessage];
+      updateChatMessages(activeChatId!, finalMessages);
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +238,10 @@ const Chat = () => {
             <span className="font-bold text-lg">BioExplorer</span>
           </div>
 
-          <Button className="mb-4 bg-primary hover:bg-primary/90 w-full">
+          <Button 
+            className="mb-4 bg-primary hover:bg-primary/90 w-full"
+            onClick={createNewChat}
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Chat
           </Button>
@@ -138,18 +249,28 @@ const Chat = () => {
 
         <ScrollArea className="flex-1 px-4">
           <div className="space-y-2">
-            <Card className="p-3 bg-sidebar-accent border-sidebar-border hover:bg-sidebar-accent/80 cursor-pointer">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm truncate">Mars Biology Research</span>
-              </div>
-            </Card>
-            <Card className="p-3 bg-sidebar-accent border-sidebar-border hover:bg-sidebar-accent/80 cursor-pointer">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm truncate">ISS Experiments</span>
-              </div>
-            </Card>
+            {chats.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No chats yet. Start a new one!
+              </p>
+            ) : (
+              chats.map((chat) => (
+                <Card
+                  key={chat.id}
+                  className={`p-3 border-sidebar-border hover:bg-sidebar-accent/80 cursor-pointer transition-colors ${
+                    chat.id === currentChatId
+                      ? "bg-sidebar-accent border-primary/50"
+                      : "bg-sidebar-accent"
+                  }`}
+                  onClick={() => switchChat(chat.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm truncate">{chat.title}</span>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         </ScrollArea>
 
@@ -200,7 +321,11 @@ const Chat = () => {
                       : "bg-card border-border"
                   }`}
                 >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <div className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-headings:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:list-outside [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:list-outside [&_li]:ml-0">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
                 </Card>
               </div>
             ))}
@@ -218,6 +343,32 @@ const Chat = () => {
           </div>
         </ScrollArea>
 
+        {/* Suggested Prompts */}
+        {isEmptyChat && (
+          <div className="px-4 py-3">
+            <div className="max-w-3xl mx-auto space-y-3">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <p className="text-muted-foreground text-sm">Try asking about:</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {suggestedPrompts.map((prompt, index) => (
+                  <Card
+                    key={index}
+                    className="p-4 bg-card border-border hover:bg-accent/50 cursor-pointer transition-colors"
+                    onClick={() => handleSend(prompt)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <MessageSquare className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{prompt}</p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="border-t border-border p-4">
           <div className="max-w-3xl mx-auto">
@@ -231,7 +382,7 @@ const Chat = () => {
                 disabled={isLoading}
               />
               <Button
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={isLoading || !input.trim()}
                 className="bg-accent hover:bg-accent/90"
               >
