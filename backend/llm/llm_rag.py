@@ -27,10 +27,10 @@ def query(question: str):
 
     completion = client.chat.completions.create(
         model="deepseek-ai/DeepSeek-V3-0324-fast",
-        max_tokens=512,
+        max_tokens=3000,
         temperature=0.3,
         messages=[
-            {"role": "system", "content": "Answer only using the provided context."},
+            {"role": "system", "content": "You are an AI research scientist specializing in space biosciences and astrobiology. Your purpose is to assist other scientists in understanding NASA bioscience publications related to human, plant, and microbial experiments conducted in space. Answer strictly using the provided context. Summarize findings, highlight experimental results, research impacts, and implications for future lunar and Martian exploration. Maintain a concise, factual, and research-focused tone suitable for scientific communication."},
             {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"}
         ]
     )
