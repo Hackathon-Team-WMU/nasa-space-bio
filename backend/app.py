@@ -25,6 +25,8 @@ def process_query():
         return jsonify({'error': 'No query provided'}), 400
 
     user_query = data['query']
+    role = data['role']
+
 
     # TODO: call langchain code here like this
     # response = langchain_function(user_query)
@@ -34,6 +36,7 @@ def process_query():
 
     return jsonify({
         'query': user_query,
+        'role': role,
         'response': langchain_response
     }), 200
 
