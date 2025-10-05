@@ -1,6 +1,7 @@
 # No python env stuff
 venv
 .env
+__pycache__
 
 # Donot upload the data files i.e., the papers
 data/*
@@ -11,3 +12,6 @@ data/*
 # Ignore the fetched data
 *.txt
 fetched_texts/*
+
+# Donot upload the vector db
+vector_store
