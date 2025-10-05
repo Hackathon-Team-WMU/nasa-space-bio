@@ -70,19 +70,43 @@ const Chat = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const queryText = input;
     setInput("");
     setIsLoading(true);
 
-    // TODO: Replace with actual API call to your local REST API
-    setTimeout(() => {
+    try {
+      // Call Flask backend API
+      const response = await fetch("http://localhost:2121/api/query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: queryText }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "This is a placeholder response. Connect your local REST API to get actual responses about NASA bioscience publications.",
+        content: data.response,
       };
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error calling API:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, I encountered an error while processing your request. Please make sure the backend is running on port 2121.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   if (loading) {
