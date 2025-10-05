@@ -47,9 +47,10 @@ def query(question: str, role: str):
 
     # Query the model
     completion = client.chat.completions.create(
-        model="deepseek-ai/DeepSeek-V3-0324-fast",
-        max_tokens=3000,
-        temperature=0.3,
+        model="nvidia/Llama-3_1-Nemotron-Ultra-253B-v1",
+        max_tokens=10000,
+        temperature=0.2,
+        top_p=0.9,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}\n\nWhen responding, cite sources inline as [Source 1], [Source 2], etc., corresponding to the listed references."}
@@ -58,14 +59,16 @@ def query(question: str, role: str):
 
     answer = completion.choices[0].message.content
 
-    # Separate structured list of sources for UI display
-    sources = []
+    # Separate structured list of sources for UI display and Deduplicate sources by URL
+    unique_sources = {}
     for i, r in enumerate(results):
-        src = {
-            "id": f"Source {i+1}",
-            "title": r.metadata.get("title", "Unknown Title"),
-            "url": r.metadata.get("url", "No URL")
-        }
-        sources.append(src)
+        url = r.metadata.get("url", "No URL")
+        if url not in unique_sources:
+            unique_sources[url] = {
+                "id": f"Source {len(unique_sources)+1}",
+                "title": r.metadata.get("title", "Unknown Title"),
+                "url": url
+            }
+    sources = list(unique_sources.values())
 
     return {"response": answer, "sources": sources}
