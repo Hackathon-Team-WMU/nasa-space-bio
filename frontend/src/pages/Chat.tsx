@@ -340,7 +340,7 @@ const Chat = () => {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+      <div className="w-1/5 min-w-[280px] bg-sidebar border-r border-sidebar-border flex flex-col">
         <div className="p-4">
           <div className="flex items-center gap-2 mb-6">
             <Rocket className="w-6 h-6 text-primary" />
@@ -476,7 +476,7 @@ const Chat = () => {
       <div className="flex-1 flex flex-col">
         {/* Role Selector Header */}
         <div className="border-b border-border p-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
               <SelectTrigger className="w-[240px] bg-card border-border">
                 <SelectValue>
@@ -515,7 +515,7 @@ const Chat = () => {
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-6">
-          <div className="max-w-3xl mx-auto space-y-6">
+          <div className="max-w-5xl mx-auto space-y-6">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -553,7 +553,7 @@ const Chat = () => {
         {/* Suggested Prompts */}
         {isEmptyChat && (
           <div className="px-4 py-3">
-            <div className="max-w-3xl mx-auto space-y-3">
+            <div className="max-w-5xl mx-auto space-y-3">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <p className="text-muted-foreground text-sm">Try asking about:</p>
@@ -578,7 +578,7 @@ const Chat = () => {
 
         {/* Input Area */}
         <div className="border-t border-border p-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <div className="flex gap-2">
               <Input
                 value={input}
@@ -591,7 +591,7 @@ const Chat = () => {
               <Button
                 onClick={() => handleSend()}
                 disabled={isLoading || !input.trim()}
-                className="bg-accent hover:bg-accent/90"
+                className="bg-primary hover:bg-primary/90 text-white"
               >
                 <Send className="w-4 h-4" />
               </Button>
