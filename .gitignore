@@ -20,4 +20,4 @@ vector_store
 !requirements.txt
 
 # Node stuff
-frontend/node_modules/*
+frontend/node_modules/
