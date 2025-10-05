@@ -8,6 +8,48 @@ Scripts folder is for the common data fetch scripts
 
 # RAG pipeline Installation instructions
 
+- Install Virtual Environment for python
+
+Linux:
+
+```bash
+sudo apt install python3-venv -y        # Ubuntu/Debian
+
+sudo dnf install python3-venv -y        # Fedora
+```
+
+Windows:
+
+```bash
+pip install virtualenv
+```
+
+- Activate the virtual environment
+
+Linux:
+
+```bash
+python -m venv your_env_name
+
+or
+
+python3 -m venv your_env_name
+
+source your_env_name/bin/activate
+```
+
+Windows:
+  CMD
+```bash
+python -m venv your_env_name
+
+# Command Prompt
+your_env_name\Scripts\activate.bat
+
+# Powershell
+your_env_name\Scripts\Activate.ps1
+```
+
 - First we install all the dependencies required for the pipeline
 ```bash
 pip install -r requirements.txt
