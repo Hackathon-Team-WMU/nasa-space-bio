@@ -36,6 +36,7 @@ interface ChatSession {
   title: string;
   messages: Message[];
   createdAt: number;
+  role: UserRole;
 }
 
 interface Profile {
@@ -241,10 +242,18 @@ const Chat = () => {
       const savedChats = localStorage.getItem("nasa_chats");
       if (savedChats) {
         const chatsData = JSON.parse(savedChats);
-        setChats(chatsData);
-        // Load the most recent chat
-        if (chatsData.length > 0) {
-          setCurrentChatId(chatsData[0].id);
+        // Migrate old chats that don't have a role field
+        const migratedChats = chatsData.map((chat: ChatSession) => ({
+          ...chat,
+          role: chat.role || "scientist" // Default to scientist for old chats
+        }));
+        setChats(migratedChats);
+        // Load the most recent chat and its role
+        if (migratedChats.length > 0) {
+          setCurrentChatId(migratedChats[0].id);
+          if (migratedChats[0].role) {
+            setSelectedRole(migratedChats[0].role);
+          }
         }
       }
     } catch (error) {
@@ -294,6 +303,7 @@ const Chat = () => {
       title: "New Chat",
       messages: [], // Don't save initial message
       createdAt: Date.now(),
+      role: selectedRole, // Save the current role
     };
     setChats((prev) => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
@@ -302,6 +312,11 @@ const Chat = () => {
 
   const switchChat = (chatId: string) => {
     setCurrentChatId(chatId);
+    // Update the selected role to match the chat's role
+    const chat = chats.find(c => c.id === chatId);
+    if (chat && chat.role) {
+      setSelectedRole(chat.role);
+    }
   };
 
   const deleteChat = (chatId: string) => {
@@ -312,6 +327,10 @@ const Chat = () => {
     if (currentChatId === chatId) {
       if (updatedChats.length > 0) {
         setCurrentChatId(updatedChats[0].id);
+        // Update role to match the new active chat
+        if (updatedChats[0].role) {
+          setSelectedRole(updatedChats[0].role);
+        }
       } else {
         // No chats left, create a new one
         createNewChat();
@@ -362,7 +381,7 @@ const Chat = () => {
               title = `${roleTitle} ${dateStr}`;
             }
           }
-          return { ...chat, messages: newMessages, title };
+          return { ...chat, messages: newMessages, title, role: selectedRole };
         }
         return chat;
       })
@@ -381,6 +400,7 @@ const Chat = () => {
         title: "New Chat",
         messages: [], // Don't save initial message
         createdAt: Date.now(),
+        role: selectedRole, // Save the current role
       };
       setChats([newChat]);
       setCurrentChatId(newChat.id);
