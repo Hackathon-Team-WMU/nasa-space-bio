@@ -17,24 +17,35 @@ interface Message {
   content: string;
 }
 
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: number;
+}
+
 interface Profile {
   full_name: string | null;
   email: string;
 }
 
+const INITIAL_MESSAGE: Message = {
+  id: "1",
+  role: "assistant",
+  content: "Hello! I'm your NASA BioExplorer assistant. Ask me anything about space biology research and experiments!",
+};
+
 const Chat = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "Hello! I'm your NASA BioExplorer assistant. Ask me anything about space biology research and experiments!",
-    },
-  ]);
+  const [chats, setChats] = useState<ChatSession[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const currentChat = chats.find((chat) => chat.id === currentChatId);
+  const messages = currentChat?.messages || [INITIAL_MESSAGE];
 
   const suggestedPrompts = [
     "Find publications on microgravity effects on bone density",
@@ -49,6 +60,35 @@ const Chat = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  // Load chats from cookies
+  useEffect(() => {
+    const savedChats = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("nasa_chats="));
+    
+    if (savedChats) {
+      try {
+        const chatsData = JSON.parse(decodeURIComponent(savedChats.split("=")[1]));
+        setChats(chatsData);
+        // Load the most recent chat
+        if (chatsData.length > 0) {
+          setCurrentChatId(chatsData[0].id);
+        }
+      } catch (error) {
+        console.error("Error loading chats:", error);
+      }
+    }
+  }, []);
+
+  // Save chats to cookies whenever they change
+  useEffect(() => {
+    if (chats.length > 0) {
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 30); // 30 days
+      document.cookie = `nasa_chats=${encodeURIComponent(JSON.stringify(chats))};expires=${expires.toUTCString()};path=/`;
+    }
+  }, [chats]);
 
   // Fetch user profile
   useEffect(() => {
@@ -69,9 +109,57 @@ const Chat = () => {
     fetchProfile();
   }, [user]);
 
+  const createNewChat = () => {
+    const newChat: ChatSession = {
+      id: Date.now().toString(),
+      title: "New Chat",
+      messages: [INITIAL_MESSAGE],
+      createdAt: Date.now(),
+    };
+    setChats((prev) => [newChat, ...prev]);
+    setCurrentChatId(newChat.id);
+  };
+
+  const switchChat = (chatId: string) => {
+    setCurrentChatId(chatId);
+  };
+
+  const updateChatMessages = (chatId: string, newMessages: Message[]) => {
+    setChats((prev) =>
+      prev.map((chat) => {
+        if (chat.id === chatId) {
+          // Update title based on first user message if it's still "New Chat"
+          let title = chat.title;
+          if (title === "New Chat") {
+            const firstUserMessage = newMessages.find((msg) => msg.role === "user");
+            if (firstUserMessage) {
+              title = firstUserMessage.content.slice(0, 40) + (firstUserMessage.content.length > 40 ? "..." : "");
+            }
+          }
+          return { ...chat, messages: newMessages, title };
+        }
+        return chat;
+      })
+    );
+  };
+
   const handleSend = async (messageText?: string) => {
     const textToSend = messageText || input;
     if (!textToSend.trim() || isLoading) return;
+
+    // Create a new chat if none exists
+    let activeChatId = currentChatId;
+    if (!activeChatId) {
+      const newChat: ChatSession = {
+        id: Date.now().toString(),
+        title: "New Chat",
+        messages: [INITIAL_MESSAGE],
+        createdAt: Date.now(),
+      };
+      setChats([newChat]);
+      setCurrentChatId(newChat.id);
+      activeChatId = newChat.id;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -79,7 +167,10 @@ const Chat = () => {
       content: textToSend,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const currentMessages = currentChat?.messages || [INITIAL_MESSAGE];
+    const updatedMessages = [...currentMessages, userMessage];
+    updateChatMessages(activeChatId, updatedMessages);
+    
     const queryText = textToSend;
     setInput("");
     setIsLoading(true);
@@ -105,7 +196,8 @@ const Chat = () => {
         role: "assistant",
         content: data.response,
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const finalMessages = [...updatedMessages, assistantMessage];
+      updateChatMessages(activeChatId!, finalMessages);
     } catch (error) {
       console.error("Error calling API:", error);
       const errorMessage: Message = {
@@ -113,7 +205,8 @@ const Chat = () => {
         role: "assistant",
         content: "Sorry, I encountered an error while processing your request. Please make sure the backend is running on port 2121.",
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      const finalMessages = [...updatedMessages, errorMessage];
+      updateChatMessages(activeChatId!, finalMessages);
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +233,10 @@ const Chat = () => {
             <span className="font-bold text-lg">BioExplorer</span>
           </div>
 
-          <Button className="mb-4 bg-primary hover:bg-primary/90 w-full">
+          <Button 
+            className="mb-4 bg-primary hover:bg-primary/90 w-full"
+            onClick={createNewChat}
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Chat
           </Button>
@@ -148,18 +244,28 @@ const Chat = () => {
 
         <ScrollArea className="flex-1 px-4">
           <div className="space-y-2">
-            <Card className="p-3 bg-sidebar-accent border-sidebar-border hover:bg-sidebar-accent/80 cursor-pointer">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm truncate">Mars Biology Research</span>
-              </div>
-            </Card>
-            <Card className="p-3 bg-sidebar-accent border-sidebar-border hover:bg-sidebar-accent/80 cursor-pointer">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm truncate">ISS Experiments</span>
-              </div>
-            </Card>
+            {chats.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No chats yet. Start a new one!
+              </p>
+            ) : (
+              chats.map((chat) => (
+                <Card
+                  key={chat.id}
+                  className={`p-3 border-sidebar-border hover:bg-sidebar-accent/80 cursor-pointer transition-colors ${
+                    chat.id === currentChatId
+                      ? "bg-sidebar-accent border-primary/50"
+                      : "bg-sidebar-accent"
+                  }`}
+                  onClick={() => switchChat(chat.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm truncate">{chat.title}</span>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         </ScrollArea>
 
