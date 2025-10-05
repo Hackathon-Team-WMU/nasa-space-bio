@@ -5,7 +5,7 @@
 Your task is to build a functional web application that leverages AI, knowledge graphs, and/or other tools to summarize and make accessible the vast corpus of NASA bioscience data.  
 
 The challenge prompt:  
-> “Build a Space Biology Knowledge Engine” — organize and surface insights from decades of NASA space biology research, making it easier for users (scientists, educators, enthusiasts) to explore life science in space. :contentReference[oaicite:1]{index=1}  
+> “Build a Space Biology Knowledge Engine” — organize and surface insights from decades of NASA space biology research, making it easier for users (scientists, educators, enthusiasts) to explore life science in space. 
 
 You can find the official challenge here:  
 [Build a Space Biology Knowledge Engine (NASA Space Apps 2025)](https://www.spaceappschallenge.org/2025/challenges/build-a-space-biology-knowledge-engine/)  
@@ -109,7 +109,11 @@ python3 llm/embeddings_builder.py
 
 #### i) Launch app on local server
 ```
-run app.py
+python app.py
+
+or
+
+python3 app.py
 ```
 
 ### *Frontend setup*
@@ -144,7 +148,14 @@ npm run dev
 <http://localhost:8080/>
 
 
-Have fun !!
+## 👥 Team
+
+This project was built for the **NASA Space Apps Challenge 2025** by **Hackathon-Team-WMU**:  
+
+- [Cody Thornell](https://github.com/grcodeman)  
+- [Sresthaa Shaga](https://github.com/Shagasresthaa)    
+- [Demitrius Webb](https://github.com/Blacksanta10)   
+
   
 
 
