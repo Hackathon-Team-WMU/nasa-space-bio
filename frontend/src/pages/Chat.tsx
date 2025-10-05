@@ -4,12 +4,19 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Plus, Rocket, LogOut, User, Sparkles } from "lucide-react";
+import { MessageSquare, Send, Plus, Rocket, LogOut, User, Sparkles, ChevronDown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Message {
   id: string;
@@ -29,11 +36,42 @@ interface Profile {
   email: string;
 }
 
-const INITIAL_MESSAGE: Message = {
+type UserRole = "scientist" | "manager" | "architect" | "student";
+
+interface RoleConfig {
+  title: string;
+  description: string;
+  initialMessage: string;
+}
+
+const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
+  scientist: {
+    title: "Research Scientist",
+    description: "AI research assistant for space biosciences and astrobiology",
+    initialMessage: "Hello! I'm your NASA BioExplorer research assistant. I specialize in space biosciences and astrobiology. Ask me about human, plant, and microbial experiments conducted in space!",
+  },
+  manager: {
+    title: "Investment Manager",
+    description: "Evaluating NASA's space bioscience research portfolio",
+    initialMessage: "Hello! I'm here to help you evaluate NASA's space bioscience research portfolio from an investment perspective. I'll provide high-level insights on breakthroughs, mission planning, and commercial opportunities.",
+  },
+  architect: {
+    title: "Mission Architect",
+    description: "Planning safe and efficient human space exploration",
+    initialMessage: "Hello! I'm your mission architect assistant for planning Moon and Mars exploration. I'll help you understand research findings that impact mission design, spacecraft systems, and astronaut health.",
+  },
+  student: {
+    title: "Student Tutor",
+    description: "Learning about NASA's space bioscience research",
+    initialMessage: "Hello! I'm your AI tutor for understanding NASA's space bioscience research. I'll explain experiments and findings in a clear, educational way to help you learn about space exploration!",
+  },
+};
+
+const getInitialMessage = (role: UserRole): Message => ({
   id: "1",
   role: "assistant",
-  content: "Hello! I'm your NASA BioExplorer assistant. Ask me anything about space biology research and experiments!",
-};
+  content: ROLE_CONFIGS[role].initialMessage,
+});
 
 const Chat = () => {
   const { user, loading, signOut } = useAuth();
@@ -43,9 +81,10 @@ const Chat = () => {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>("scientist");
 
   const currentChat = chats.find((chat) => chat.id === currentChatId);
-  const messages = currentChat?.messages || [INITIAL_MESSAGE];
+  const messages = currentChat?.messages || [getInitialMessage(selectedRole)];
 
   const suggestedPrompts = [
     "Find publications on microgravity effects on bone density",
@@ -118,7 +157,7 @@ const Chat = () => {
     const newChat: ChatSession = {
       id: Date.now().toString(),
       title: "New Chat",
-      messages: [INITIAL_MESSAGE],
+      messages: [getInitialMessage(selectedRole)],
       createdAt: Date.now(),
     };
     setChats((prev) => [newChat, ...prev]);
@@ -158,7 +197,7 @@ const Chat = () => {
       const newChat: ChatSession = {
         id: Date.now().toString(),
         title: "New Chat",
-        messages: [INITIAL_MESSAGE],
+        messages: [getInitialMessage(selectedRole)],
         createdAt: Date.now(),
       };
       setChats([newChat]);
@@ -172,7 +211,7 @@ const Chat = () => {
       content: textToSend,
     };
 
-    const currentMessages = currentChat?.messages || [INITIAL_MESSAGE];
+    const currentMessages = currentChat?.messages || [getInitialMessage(selectedRole)];
     const updatedMessages = [...currentMessages, userMessage];
     updateChatMessages(activeChatId, updatedMessages);
     
@@ -187,7 +226,7 @@ const Chat = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: queryText }),
+        body: JSON.stringify({ query: queryText, role: selectedRole }),
       });
 
       if (!response.ok) {
@@ -306,6 +345,45 @@ const Chat = () => {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
+        {/* Role Selector Header */}
+        <div className="border-b border-border p-4">
+          <div className="max-w-3xl mx-auto">
+            <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
+              <SelectTrigger className="w-[240px] bg-card border-border">
+                <SelectValue>
+                  <div className="text-sm font-medium">{ROLE_CONFIGS[selectedRole].title}</div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="scientist">
+                  <div className="py-1">
+                    <div className="font-medium">Research Scientist</div>
+                    <div className="text-xs text-muted-foreground">Space biosciences and astrobiology</div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="manager">
+                  <div className="py-1">
+                    <div className="font-medium">Investment Manager</div>
+                    <div className="text-xs text-muted-foreground">Portfolio evaluation and opportunities</div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="architect">
+                  <div className="py-1">
+                    <div className="font-medium">Mission Architect</div>
+                    <div className="text-xs text-muted-foreground">Mission planning and design</div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="student">
+                  <div className="py-1">
+                    <div className="font-medium">Student Tutor</div>
+                    <div className="text-xs text-muted-foreground">Educational and learning focused</div>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {/* Messages */}
         <ScrollArea className="flex-1 p-6">
           <div className="max-w-3xl mx-auto space-y-6">
