@@ -15,3 +15,6 @@ fetched_texts/*
 
 # Donot upload the vector db
 vector_store
+
+# Exception for requirements files
+!requirements.txt
