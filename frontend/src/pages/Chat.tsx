@@ -40,6 +40,7 @@ type UserRole = "scientist" | "manager" | "architect" | "student";
 
 interface RoleConfig {
   title: string;
+  shortTitle: string;
   description: string;
   initialMessage: string;
   suggestedPrompts: string[];
@@ -48,6 +49,7 @@ interface RoleConfig {
 const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   scientist: {
     title: "Research Scientist",
+    shortTitle: "Scientist",
     description: "AI research assistant for space biosciences and astrobiology",
     initialMessage: "Hello! I'm your research assistant for space biosciences. Ask me about NASA publications, experimental results, or research impacts for lunar and Martian exploration.",
     suggestedPrompts: [
@@ -57,6 +59,7 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   },
   manager: {
     title: "Investment Manager",
+    shortTitle: "Manager",
     description: "Evaluating NASA's space bioscience research portfolio",
     initialMessage: "Hello! I provide investment-focused insights on NASA's space bioscience research. I'll help you identify breakthroughs, commercial opportunities, and strategic value in space experiments.",
     suggestedPrompts: [
@@ -66,6 +69,7 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   },
   architect: {
     title: "Mission Architect",
+    shortTitle: "Architect",
     description: "Planning safe and efficient human space exploration",
     initialMessage: "Hello! I'm your mission planning assistant for Moon and Mars exploration. Ask me how space bioscience research impacts mission design, crew health, and operational efficiency.",
     suggestedPrompts: [
@@ -75,6 +79,7 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   },
   student: {
     title: "Student Tutor",
+    shortTitle: "Student",
     description: "Learning about NASA's space bioscience research",
     initialMessage: "Hello! I'm here to help you learn about NASA's space bioscience research. I'll explain experiments in space clearly and simply. Ask me anything!",
     suggestedPrompts: [
@@ -228,12 +233,21 @@ const Chat = () => {
     setChats((prev) =>
       prev.map((chat) => {
         if (chat.id === chatId) {
-          // Update title based on first user message if it's still "New Chat"
+          // Update title based on role and date if it's still "New Chat"
           let title = chat.title;
           if (title === "New Chat") {
             const firstUserMessage = newMessages.find((msg) => msg.role === "user");
             if (firstUserMessage) {
-              title = firstUserMessage.content.slice(0, 40) + (firstUserMessage.content.length > 40 ? "..." : "");
+              // Format date as MM/DD/YY
+              const now = new Date();
+              const month = String(now.getMonth() + 1).padStart(2, '0');
+              const day = String(now.getDate()).padStart(2, '0');
+              const year = String(now.getFullYear()).slice(-2);
+              const dateStr = `${month}/${day}/${year}`;
+              
+              // Use short role title for the chat name
+              const roleTitle = ROLE_CONFIGS[selectedRole].shortTitle;
+              title = `${roleTitle} ${dateStr}`;
             }
           }
           return { ...chat, messages: newMessages, title };
