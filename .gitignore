@@ -18,3 +18,6 @@ vector_store
 
 # Exception for requirements files
 !requirements.txt
+
+# Node stuff
+frontend/node_modules/*
