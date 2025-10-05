@@ -42,6 +42,7 @@ interface RoleConfig {
   title: string;
   description: string;
   initialMessage: string;
+  suggestedPrompts: string[];
 }
 
 const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
@@ -49,21 +50,37 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     title: "Research Scientist",
     description: "AI research assistant for space biosciences and astrobiology",
     initialMessage: "Hello! I'm your research assistant for space biosciences. Ask me about NASA publications, experimental results, or research impacts for lunar and Martian exploration.",
+    suggestedPrompts: [
+      "Find publications on microgravity effects on bone density",
+      "What are the latest findings on microbial behavior in space?",
+    ],
   },
   manager: {
     title: "Investment Manager",
     description: "Evaluating NASA's space bioscience research portfolio",
     initialMessage: "Hello! I provide investment-focused insights on NASA's space bioscience research. I'll help you identify breakthroughs, commercial opportunities, and strategic value in space experiments.",
+    suggestedPrompts: [
+      "What are the most promising commercial opportunities in space bioscience?",
+      "Which research areas show the highest ROI for Mars missions?",
+    ],
   },
   architect: {
     title: "Mission Architect",
     description: "Planning safe and efficient human space exploration",
     initialMessage: "Hello! I'm your mission planning assistant for Moon and Mars exploration. Ask me how space bioscience research impacts mission design, crew health, and operational efficiency.",
+    suggestedPrompts: [
+      "How does space radiation affect crew health on long-duration missions?",
+      "What habitat systems are needed for sustainable plant growth on Mars?",
+    ],
   },
   student: {
     title: "Student Tutor",
     description: "Learning about NASA's space bioscience research",
     initialMessage: "Hello! I'm here to help you learn about NASA's space bioscience research. I'll explain experiments in space clearly and simply. Ask me anything!",
+    suggestedPrompts: [
+      "How do plants grow differently in space?",
+      "Why is it important to study biology in space?",
+    ],
   },
 };
 
@@ -88,10 +105,7 @@ const Chat = () => {
   // Dynamically prepend initial message - don't save it to localStorage
   const messages = storedMessages.length === 0 ? [getInitialMessage(selectedRole)] : storedMessages;
 
-  const suggestedPrompts = [
-    "Find publications on microgravity effects on bone density",
-    "Summarize the article about plant growth experiments on the ISS",
-  ];
+  const suggestedPrompts = ROLE_CONFIGS[selectedRole].suggestedPrompts;
 
   const isEmptyChat = storedMessages.length === 0;
 
