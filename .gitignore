@@ -1,0 +1,17 @@
+# No python env stuff
+venv
+.env
+__pycache__
+
+# Donot upload the data files i.e., the papers
+data/*
+
+# Let the csv be as is
+!data/SB_publication_PMC.csv
+
+# Ignore the fetched data
+*.txt
+fetched_texts/*
+
+# Donot upload the vector db
+vector_store
