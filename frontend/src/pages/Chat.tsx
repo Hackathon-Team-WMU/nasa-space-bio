@@ -61,32 +61,37 @@ const Chat = () => {
     }
   }, [user, loading, navigate]);
 
-  // Load chats from cookies
+  // Load chats from localStorage
   useEffect(() => {
-    const savedChats = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("nasa_chats="));
-    
-    if (savedChats) {
-      try {
-        const chatsData = JSON.parse(decodeURIComponent(savedChats.split("=")[1]));
+    try {
+      const savedChats = localStorage.getItem("nasa_chats");
+      if (savedChats) {
+        const chatsData = JSON.parse(savedChats);
         setChats(chatsData);
         // Load the most recent chat
         if (chatsData.length > 0) {
           setCurrentChatId(chatsData[0].id);
         }
-      } catch (error) {
-        console.error("Error loading chats:", error);
       }
+    } catch (error) {
+      console.error("Error loading chats:", error);
+      // Clear corrupted data
+      localStorage.removeItem("nasa_chats");
     }
   }, []);
 
-  // Save chats to cookies whenever they change
+  // Save chats to localStorage whenever they change
   useEffect(() => {
-    if (chats.length > 0) {
-      const expires = new Date();
-      expires.setDate(expires.getDate() + 30); // 30 days
-      document.cookie = `nasa_chats=${encodeURIComponent(JSON.stringify(chats))};expires=${expires.toUTCString()};path=/`;
+    try {
+      if (chats.length > 0) {
+        localStorage.setItem("nasa_chats", JSON.stringify(chats));
+      }
+    } catch (error) {
+      console.error("Error saving chats:", error);
+      // Handle storage quota exceeded
+      if (error instanceof DOMException && error.name === "QuotaExceededError") {
+        alert("Storage limit exceeded. Please clear some old chats.");
+      }
     }
   }, [chats]);
 
