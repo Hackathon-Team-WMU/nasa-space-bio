@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Plus, Rocket, LogOut, User, Sparkles, ChevronDown, Trash2, Pencil, Check, X } from "lucide-react";
+import { MessageSquare, Send, Plus, Rocket, LogOut, User, Sparkles, ChevronDown, Trash2, Pencil, Check, X, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,10 +18,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface Source {
+  id: string;
+  title: string;
+  url: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  sources?: Source[];
 }
 
 interface ChatSession {
@@ -29,6 +36,7 @@ interface ChatSession {
   title: string;
   messages: Message[];
   createdAt: number;
+  role: UserRole;
 }
 
 interface Profile {
@@ -107,6 +115,111 @@ const Chat = () => {
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
 
+  // Component to render message content with inline source chips
+  const MessageContent = ({ content, sources }: { content: string; sources?: Source[] }) => {
+    if (!sources || sources.length === 0) {
+      return (
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {content}
+        </ReactMarkdown>
+      );
+    }
+
+    // Create a map of source IDs to their URLs
+    const sourceMap = new Map(sources.map(s => [s.id, s.url]));
+
+    // Function to process text and replace [Source X] with chips
+    const processTextWithChips = (text: string) => {
+      if (!text || typeof text !== 'string' || !/\[Source \d+\]/.test(text)) {
+        return text;
+      }
+
+      const parts: (string | JSX.Element)[] = [];
+      const regex = /\[Source (\d+)\]/g;
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(text.substring(lastIndex, match.index));
+        }
+        
+        const sourceId = `Source ${match[1]}`;
+        const url = sourceMap.get(sourceId);
+        
+        if (url && url !== "No URL") {
+          parts.push(
+            <a
+              key={match.index}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block align-baseline px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/30 font-medium whitespace-nowrap cursor-pointer transition-colors"
+              style={{ fontSize: '0.75em', marginLeft: '2px', marginRight: '2px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {match[0]}
+            </a>
+          );
+        } else {
+          parts.push(
+            <span
+              key={match.index}
+              className="inline-block align-baseline px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap"
+              style={{ fontSize: '0.75em', marginLeft: '2px', marginRight: '2px' }}
+            >
+              {match[0]}
+            </span>
+          );
+        }
+        
+        lastIndex = regex.lastIndex;
+      }
+
+      if (lastIndex < text.length) {
+        parts.push(text.substring(lastIndex));
+      }
+
+      return parts;
+    };
+
+    // Custom components to handle inline citations
+    const components = {
+      p: ({ children, ...props }: any) => {
+        const processChildren = (child: any): any => {
+          if (typeof child === 'string') {
+            return processTextWithChips(child);
+          }
+          if (Array.isArray(child)) {
+            return child.map(processChildren);
+          }
+          return child;
+        };
+
+        return <p {...props}>{processChildren(children)}</p>;
+      },
+      li: ({ children, ...props }: any) => {
+        const processChildren = (child: any): any => {
+          if (typeof child === 'string') {
+            return processTextWithChips(child);
+          }
+          if (Array.isArray(child)) {
+            return child.map(processChildren);
+          }
+          return child;
+        };
+
+        return <li {...props}>{processChildren(children)}</li>;
+      },
+    };
+
+    return (
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+        {content}
+      </ReactMarkdown>
+    );
+  };
+
   const currentChat = chats.find((chat) => chat.id === currentChatId);
   const storedMessages = currentChat?.messages || [];
   // Dynamically prepend initial message - don't save it to localStorage
@@ -129,10 +242,18 @@ const Chat = () => {
       const savedChats = localStorage.getItem("nasa_chats");
       if (savedChats) {
         const chatsData = JSON.parse(savedChats);
-        setChats(chatsData);
-        // Load the most recent chat
-        if (chatsData.length > 0) {
-          setCurrentChatId(chatsData[0].id);
+        // Migrate old chats that don't have a role field
+        const migratedChats = chatsData.map((chat: ChatSession) => ({
+          ...chat,
+          role: chat.role || "scientist" // Default to scientist for old chats
+        }));
+        setChats(migratedChats);
+        // Load the most recent chat and its role
+        if (migratedChats.length > 0) {
+          setCurrentChatId(migratedChats[0].id);
+          if (migratedChats[0].role) {
+            setSelectedRole(migratedChats[0].role);
+          }
         }
       }
     } catch (error) {
@@ -182,6 +303,7 @@ const Chat = () => {
       title: "New Chat",
       messages: [], // Don't save initial message
       createdAt: Date.now(),
+      role: selectedRole, // Save the current role
     };
     setChats((prev) => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
@@ -190,6 +312,11 @@ const Chat = () => {
 
   const switchChat = (chatId: string) => {
     setCurrentChatId(chatId);
+    // Update the selected role to match the chat's role
+    const chat = chats.find(c => c.id === chatId);
+    if (chat && chat.role) {
+      setSelectedRole(chat.role);
+    }
   };
 
   const deleteChat = (chatId: string) => {
@@ -200,6 +327,10 @@ const Chat = () => {
     if (currentChatId === chatId) {
       if (updatedChats.length > 0) {
         setCurrentChatId(updatedChats[0].id);
+        // Update role to match the new active chat
+        if (updatedChats[0].role) {
+          setSelectedRole(updatedChats[0].role);
+        }
       } else {
         // No chats left, create a new one
         createNewChat();
@@ -250,7 +381,7 @@ const Chat = () => {
               title = `${roleTitle} ${dateStr}`;
             }
           }
-          return { ...chat, messages: newMessages, title };
+          return { ...chat, messages: newMessages, title, role: selectedRole };
         }
         return chat;
       })
@@ -269,6 +400,7 @@ const Chat = () => {
         title: "New Chat",
         messages: [], // Don't save initial message
         createdAt: Date.now(),
+        role: selectedRole, // Save the current role
       };
       setChats([newChat]);
       setCurrentChatId(newChat.id);
@@ -305,10 +437,15 @@ const Chat = () => {
 
       const data = await response.json();
 
+      // Parse the nested response structure
+      const responseText = data.response?.response || data.response;
+      const sources = data.response?.sources || [];
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: responseText,
+        sources: sources,
       };
       const finalMessages = [...updatedMessages, assistantMessage];
       updateChatMessages(activeChatId!, finalMessages);
@@ -529,10 +666,37 @@ const Chat = () => {
                   }`}
                 >
                   <div className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-headings:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:list-outside [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:list-outside [&_li]:ml-0 [&_*]:break-words">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {message.content}
-                    </ReactMarkdown>
+                    <MessageContent content={message.content} sources={message.sources} />
                   </div>
+                  
+                  {/* Sources Section */}
+                  {message.role === "assistant" && message.sources && message.sources.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Sources:</p>
+                      <div className="space-y-2">
+                        {message.sources.map((source) => (
+                          <a
+                            key={source.id}
+                            href={source.url !== "No URL" ? source.url : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-start gap-2 text-xs p-2 rounded hover:bg-accent/50 transition-colors ${
+                              source.url === "No URL" ? "cursor-default opacity-60" : "cursor-pointer"
+                            }`}
+                            onClick={(e) => {
+                              if (source.url === "No URL") e.preventDefault();
+                            }}
+                          >
+                            <span className="font-medium text-primary flex-shrink-0">{source.id}:</span>
+                            <span className="flex-1 break-words">{source.title}</span>
+                            {source.url !== "No URL" && (
+                              <ExternalLink className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+                            )}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </Card>
               </div>
             ))}
