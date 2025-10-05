@@ -39,7 +39,7 @@ source your_env_name/bin/activate
 ```
 
 Windows:
-  CMD
+
 ```bash
 python -m venv your_env_name
 
