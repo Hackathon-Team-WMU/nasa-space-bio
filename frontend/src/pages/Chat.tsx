@@ -48,22 +48,22 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   scientist: {
     title: "Research Scientist",
     description: "AI research assistant for space biosciences and astrobiology",
-    initialMessage: "Hello! I'm your NASA BioExplorer research assistant. I specialize in space biosciences and astrobiology. Ask me about human, plant, and microbial experiments conducted in space!",
+    initialMessage: "Hello! I'm your research assistant for space biosciences. Ask me about NASA publications, experimental results, or research impacts for lunar and Martian exploration.",
   },
   manager: {
     title: "Investment Manager",
     description: "Evaluating NASA's space bioscience research portfolio",
-    initialMessage: "Hello! I'm here to help you evaluate NASA's space bioscience research portfolio from an investment perspective. I'll provide high-level insights on breakthroughs, mission planning, and commercial opportunities.",
+    initialMessage: "Hello! I provide investment-focused insights on NASA's space bioscience research. I'll help you identify breakthroughs, commercial opportunities, and strategic value in space experiments.",
   },
   architect: {
     title: "Mission Architect",
     description: "Planning safe and efficient human space exploration",
-    initialMessage: "Hello! I'm your mission architect assistant for planning Moon and Mars exploration. I'll help you understand research findings that impact mission design, spacecraft systems, and astronaut health.",
+    initialMessage: "Hello! I'm your mission planning assistant for Moon and Mars exploration. Ask me how space bioscience research impacts mission design, crew health, and operational efficiency.",
   },
   student: {
     title: "Student Tutor",
     description: "Learning about NASA's space bioscience research",
-    initialMessage: "Hello! I'm your AI tutor for understanding NASA's space bioscience research. I'll explain experiments and findings in a clear, educational way to help you learn about space exploration!",
+    initialMessage: "Hello! I'm here to help you learn about NASA's space bioscience research. I'll explain experiments in space clearly and simply. Ask me anything!",
   },
 };
 
@@ -84,14 +84,16 @@ const Chat = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>("scientist");
 
   const currentChat = chats.find((chat) => chat.id === currentChatId);
-  const messages = currentChat?.messages || [getInitialMessage(selectedRole)];
+  const storedMessages = currentChat?.messages || [];
+  // Dynamically prepend initial message - don't save it to localStorage
+  const messages = storedMessages.length === 0 ? [getInitialMessage(selectedRole)] : storedMessages;
 
   const suggestedPrompts = [
     "Find publications on microgravity effects on bone density",
     "Summarize the article about plant growth experiments on the ISS",
   ];
 
-  const isEmptyChat = messages.length === 1 && messages[0].role === "assistant";
+  const isEmptyChat = storedMessages.length === 0;
 
   // Redirect if not logged in
   useEffect(() => {
@@ -157,7 +159,7 @@ const Chat = () => {
     const newChat: ChatSession = {
       id: Date.now().toString(),
       title: "New Chat",
-      messages: [getInitialMessage(selectedRole)],
+      messages: [], // Don't save initial message
       createdAt: Date.now(),
     };
     setChats((prev) => [newChat, ...prev]);
@@ -197,7 +199,7 @@ const Chat = () => {
       const newChat: ChatSession = {
         id: Date.now().toString(),
         title: "New Chat",
-        messages: [getInitialMessage(selectedRole)],
+        messages: [], // Don't save initial message
         createdAt: Date.now(),
       };
       setChats([newChat]);
@@ -211,7 +213,7 @@ const Chat = () => {
       content: textToSend,
     };
 
-    const currentMessages = currentChat?.messages || [getInitialMessage(selectedRole)];
+    const currentMessages = currentChat?.messages || [];
     const updatedMessages = [...currentMessages, userMessage];
     updateChatMessages(activeChatId, updatedMessages);
     
