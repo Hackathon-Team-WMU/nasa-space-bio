@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Plus, Rocket, LogOut, User } from "lucide-react";
+import { MessageSquare, Send, Plus, Rocket, LogOut, User, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,13 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const suggestedPrompts = [
+    "Find publications on microgravity effects on bone density",
+    "Summarize the article about plant growth experiments on the ISS",
+  ];
+
+  const isEmptyChat = messages.length === 1 && messages[0].role === "assistant";
+
   // Redirect if not logged in
   useEffect(() => {
     if (!loading && !user) {
@@ -62,17 +69,18 @@ const Chat = () => {
     fetchProfile();
   }, [user]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (messageText?: string) => {
+    const textToSend = messageText || input;
+    if (!textToSend.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: textToSend,
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const queryText = input;
+    const queryText = textToSend;
     setInput("");
     setIsLoading(true);
 
@@ -224,6 +232,32 @@ const Chat = () => {
           </div>
         </ScrollArea>
 
+        {/* Suggested Prompts */}
+        {isEmptyChat && (
+          <div className="px-4 py-3">
+            <div className="max-w-3xl mx-auto space-y-3">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <p className="text-muted-foreground text-sm">Try asking about:</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {suggestedPrompts.map((prompt, index) => (
+                  <Card
+                    key={index}
+                    className="p-4 bg-card border-border hover:bg-accent/50 cursor-pointer transition-colors"
+                    onClick={() => handleSend(prompt)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <MessageSquare className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{prompt}</p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="border-t border-border p-4">
           <div className="max-w-3xl mx-auto">
@@ -237,7 +271,7 @@ const Chat = () => {
                 disabled={isLoading}
               />
               <Button
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={isLoading || !input.trim()}
                 className="bg-accent hover:bg-accent/90"
               >
