@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+"""
+NASA BioExplorer - RAG (Retrieval-Augmented Generation) Pipeline
+
+AI Usage Disclosure (NASA Space Apps Challenge 2025):
+- This RAG pipeline was developed with assistance from ChatGPT AI code assistant
+- All AI-generated code was reviewed, tested, and modified by human developers
+- Algorithm design and implementation validated by the development team
+- See AI_DISCLOSURE.md for complete details
+"""
+
 import os
 from dotenv import load_dotenv
 from langchain_community.embeddings import HuggingFaceEmbeddings

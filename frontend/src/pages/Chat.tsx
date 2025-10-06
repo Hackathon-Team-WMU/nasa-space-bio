@@ -1,3 +1,12 @@
+/**
+ * Chat Interface Component - AI-Powered Space Biology Search
+ * 
+ * AI Usage Disclosure (NASA Space Apps Challenge 2025):
+ * - Component developed with Lovable and Windsurf AI assistance
+ * - All code reviewed, tested, and customized by human developers
+ * - See AI_DISCLOSURE.md for complete details
+ */
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

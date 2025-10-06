@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+"""
+NASA BioExplorer - Data Fetching Script
+
+AI Usage Disclosure (NASA Space Apps Challenge 2025):
+- This script was developed with assistance from ChatGPT AI assistant
+- All AI-generated code was reviewed, tested, and modified by human developers
+- See AI_DISCLOSURE.md for complete details
+"""
+
 import os
 import time
 import pandas as pd

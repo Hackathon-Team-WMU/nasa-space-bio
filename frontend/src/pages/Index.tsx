@@ -1,3 +1,12 @@
+/**
+ * Landing Page Component
+ * 
+ * AI Usage Disclosure (NASA Space Apps Challenge 2025):
+ * - Component developed with Lovable and Windsurf AI assistance
+ * - Hero image (space-hero.jpg) is AI-generated with visible watermark
+ * - All code reviewed and customized by human developers
+ */
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Rocket, Database, Brain, ArrowRight } from "lucide-react";

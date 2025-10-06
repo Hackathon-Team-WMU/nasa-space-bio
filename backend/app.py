@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+"""
+NASA BioExplorer - Flask API Server
+
+AI Usage Disclosure (NASA Space Apps Challenge 2025):
+- This code was developed with assistance from Windsurf AI code assistant
+- All AI-generated code was reviewed, tested, and modified by human developers
+- See AI_DISCLOSURE.md for complete details
+"""
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from llm.llm_rag import query
