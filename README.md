@@ -148,9 +148,22 @@ npm run dev
 <http://localhost:8080/>
 
 
+## 🤖 AI Usage Disclosure
+
+**This project utilized AI tools in compliance with NASA Space Apps Challenge guidelines:**
+
+- **Code Development**: Lovable (base template) and Windsurf/ChatGPT (feature implementation) were used to accelerate development
+- **Image Generation**: The landing page hero image (`frontend/src/assets/space-hero.jpg`) was AI-generated and includes a visible "AI GENERATED" watermark
+- **Human Oversight**: All AI-generated code and content was reviewed, tested, modified, and integrated by the team
+
+**📄 For complete details**, see [AI_DISCLOSURE.md](./AI_DISCLOSURE.md)
+
+---
+
 ## 👥 Team
 
 This project was built for the **NASA Space Apps Challenge 2025** by **Hackathon-Team-WMU**:  
+https://www.spaceappschallenge.org/2025/find-a-team/team-broncos/
 
 - [Cody Thornell](https://github.com/grcodeman)  
 - [Sresthaa Shaga](https://github.com/Shagasresthaa)    
