@@ -24,12 +24,22 @@ client = OpenAI(
 def query(question: str, role: str):
     results = db.similarity_search(question, k=5)
 
+    # Separate structured list of sources for UI display and Deduplicate sources by URL
+    unique_sources = {}
+    for r in results:
+        url = r.metadata.get("url", "No URL")
+        if url not in unique_sources:
+            unique_sources[url] = {
+                "id": f"Source {len(unique_sources)+1}",
+                "title": r.metadata.get("title", "Unknown Title"),
+                "url": url,
+                "content": r.page_content
+            }
+
     # Build context for LLM with numbered sources
     context = ""
-    for i, r in enumerate(results):
-        title = r.metadata.get("title", "Unknown Title")
-        url = r.metadata.get("url", "No URL")
-        context += f"[Source {i+1}] {title} - {url}\n{r.page_content}\n\n"
+    for src in unique_sources.values():
+        context += f"[{src['id']}] {src['title']} - {src['url']}\n{src['content']}\n\n"
 
     #role based system prompts
     role_prompts = {
@@ -59,16 +69,15 @@ def query(question: str, role: str):
 
     answer = completion.choices[0].message.content
 
-    # Separate structured list of sources for UI display and Deduplicate sources by URL
-    unique_sources = {}
-    for i, r in enumerate(results):
-        url = r.metadata.get("url", "No URL")
-        if url not in unique_sources:
-            unique_sources[url] = {
-                "id": f"Source {len(unique_sources)+1}",
-                "title": r.metadata.get("title", "Unknown Title"),
-                "url": url
-            }
-    sources = list(unique_sources.values())
+    # Prepare source list
+    sources = []
+    for src in unique_sources.values():
+        source_entry = {
+            "id": src["id"],
+            "title": src["title"],
+            "url": src["url"]
+        }
+        sources.append(source_entry)
+
 
     return {"response": answer, "sources": sources}
