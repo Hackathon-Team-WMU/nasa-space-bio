@@ -1,3 +1,5 @@
+![Landing Page](./screenshots/landing.png)
+
 # Space Biology Knowledge Engine  
 *A project for the 2025 NASA Space Apps Challenge — “Build a Space Biology Knowledge Engine”*  
 
@@ -17,6 +19,8 @@ You can find the official challenge here:
 - Ingest or access NASA bioscience / space biology datasets.    
 - Provide an interface (web UI / API) for users to query, browse, and get meaningful summaries.  
 - Possibly integrate AI / NLP models to generate summaries or answer domain-specific questions.  
+
+![Chat Interface](./screenshots/chat.png)
 
 ---
 
